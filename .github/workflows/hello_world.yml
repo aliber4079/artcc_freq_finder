@@ -1,0 +1,22 @@
+name: Hello World
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  hello-world:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - run: python hello_world.py
+
+      - run: test "$(cat hello_world.txt)" = "hello world"
