@@ -4,6 +4,9 @@ on:
   push:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   run-hello-world:
     runs-on: ubuntu-latest
@@ -18,3 +21,6 @@ jobs:
 
       - name: Run hello world script
         run: python hello_world.py
+
+      - name: Verify output file
+        run: test "$(cat hello_world.txt)" = "hello world"
