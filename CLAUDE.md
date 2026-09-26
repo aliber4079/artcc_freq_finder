@@ -21,6 +21,7 @@ happens in `conus.html`.
 | ZME (Memphis) | 35 (+1 inferred) | 10 | vATCSCC/PERTI |
 | ZAU (Chicago) | 50 | 15 | vATCSCC/PERTI |
 | ZNY (New York) | 62 | 26 | vATCSCC/PERTI |
+| ZBW (Boston) | 47 | 28 | vATCSCC/PERTI |
 
 - **ZKC's data is the most solid**: sourced from vzkc.org's own real
   GeoJSON (traced back to CRC video maps + chart, the actual data real
@@ -60,7 +61,7 @@ happens in `conus.html`.
 6. Cross-validate every extracted (number, tier) pair against PERTI's
    real set before trusting a match. Expect a few genuine misses - not
    every LiveATC-audible sector has a PERTI polygon (ZME had 2, ZAU had
-   2, ZNY had 2). These become honest "audio, no polygon yet" entries
+   2, ZNY had 2, ZBW had 0). These become honest "audio, no polygon yet" entries
    in the `links` array, not silently dropped and not force-matched.
 7. Watch for real data-entry quirks in LiveATC's own listing before
    assuming your extraction is wrong - confirmed examples so far:
@@ -96,6 +97,10 @@ CENTERS = {
   center-level threshold (23,500ft Low/High, ~33-35k High/Superhigh) -
   not independently sourced. If real per-sector floor data ever turns
   up for other centers, this should be corrected.
+- Five ZBW sectors (09 Utica, 17 Nantucket, 18 Cape, 39 Cambridge,
+  49 Southie) have real audio but are listed audio-only: LiveATC doesn't
+  say their tier and PERTI has that number in more than one tier. The
+  user deferred deciding which tier each is; don't force-match them.
 - One ZME sector (34, Superhigh) has a polygon that's not independently
   sourced - it's copied from ZME-H28 because the user confirmed by ear
   that they geographically match. Flagged via the `note` field.
