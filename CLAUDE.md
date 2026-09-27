@@ -22,6 +22,7 @@ happens in `conus.html`.
 | ZAU (Chicago) | 50 | 15 | vATCSCC/PERTI |
 | ZNY (New York) | 62 | 26 | vATCSCC/PERTI |
 | ZBW (Boston) | 47 | 28 | vATCSCC/PERTI |
+| ZAB (Albuquerque) | 52 | 15 | vATCSCC/PERTI |
 
 - **ZKC's data is the most solid**: sourced from vzkc.org's own real
   GeoJSON (traced back to CRC video maps + chart, the actual data real
@@ -61,7 +62,7 @@ happens in `conus.html`.
 6. Cross-validate every extracted (number, tier) pair against PERTI's
    real set before trusting a match. Expect a few genuine misses - not
    every LiveATC-audible sector has a PERTI polygon (ZME had 2, ZAU had
-   2, ZNY had 2, ZBW had 0). These become honest "audio, no polygon yet" entries
+   2, ZNY had 2, ZBW had 0, ZAB had 0). These become honest "audio, no polygon yet" entries
    in the `links` array, not silently dropped and not force-matched.
 7. Watch for real data-entry quirks in LiveATC's own listing before
    assuming your extraction is wrong - confirmed examples so far:
@@ -101,6 +102,13 @@ CENTERS = {
   49 Southie) have real audio but are listed audio-only: LiveATC doesn't
   say their tier and PERTI has that number in more than one tier. The
   user deferred deciding which tier each is; don't force-match them.
+- Two ZAB sectors (47 Silver City Low, 90 San Simon High) are only on
+  LiveATC as UHF frequencies on the Tucson/Davis-Monthan feed - no VHF
+  listed. They're kept (not dropped as UHF duplicates, since there's no
+  VHF to duplicate) and their freq says "(UHF)". Expect to hear the
+  controller and military pilots, likely not civilian pilots.
+- ZAB sector 94 (CNX) is labeled "LH" on LiveATC and PERTI has it in both
+  Low and High, so the same feed is attached to both polygons.
 - One ZME sector (34, Superhigh) has a polygon that's not independently
   sourced - it's copied from ZME-H28 because the user confirmed by ear
   that they geographically match. Flagged via the `note` field.
