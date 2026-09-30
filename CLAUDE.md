@@ -42,6 +42,9 @@ handoffs yet. The logic is in `lib/sectors.js`, shared with the map.
 | ZBW (Boston) | 47 | 28 | vATCSCC/PERTI |
 | ZAB (Albuquerque) | 52 | 15 | vATCSCC/PERTI |
 | ZLA (Los Angeles) | 16 (High only) | 25 | vATCSCC/PERTI |
+| ZDC (Washington) | 56 | 30 | vATCSCC/PERTI |
+| ZDV (Denver) | 35 (Low + High only) | 9 | vATCSCC/PERTI |
+| ZTL (Atlanta) | 45 | 16 | vATCSCC/PERTI |
 
 - **ZKC's data is the most solid**: sourced from vzkc.org's own real
   GeoJSON (traced back to CRC video maps + chart, the actual data real
@@ -80,6 +83,15 @@ handoffs yet. The logic is in `lib/sectors.js`, shared with the map.
 
 ## The per-center extraction recipe (repeat this for new centers)
 
+**Tooling:** write `tools/centers/<artcc>.config.js` from the pasted
+LiveATC table (see `zdv`/`ztl` configs for the format and comments), then
+`node tools/add_center.js tools/centers/<artcc>.config.js`. It pulls PERTI
+geometry (cached in `tools/.cache/`, gitignored), refuses duplicate PERTI
+sector codes and unmatched (tier, number) pairs, writes both data files in
+their one-entry-per-line layout, and warns about mounts with no icao.
+Restart the server afterwards. (Centers before ZDV were added with
+one-off scripts, so they have no config file.)
+
 1. User pastes the raw HTML table from
    `https://www.liveatc.net/feedindex.php?type=us-artcc&center=<Name>`.
 2. Parse each feed block: mount ID (from `myDirectStream('...')`),
@@ -100,7 +112,10 @@ handoffs yet. The logic is in `lib/sectors.js`, shared with the map.
 6. Cross-validate every extracted (number, tier) pair against PERTI's
    real set before trusting a match. Expect a few genuine misses - not
    every LiveATC-audible sector has a PERTI polygon (ZME had 2, ZAU had
-   2, ZNY had 2, ZBW had 0, ZAB had 0, ZLA had 12 - all its Low sectors). These become honest "audio, no polygon yet" entries
+   2, ZNY had 2, ZBW had 0, ZAB had 0, ZLA had 12 - all its Low sectors,
+   ZDC had 2). Before calling something a miss, look the frequency up in
+   the vNAS/CRC positions (see above) - for ZDC that resolved sectors
+   LiveATC names without a number, and a wrong sector number. These become honest "audio, no polygon yet" entries
    in the `links` array, not silently dropped and not force-matched.
 7. Watch for real data-entry quirks in LiveATC's own listing before
    assuming your extraction is wrong - confirmed examples so far:
@@ -153,6 +168,26 @@ CENTERS = {
   could fill this in later.
 - ZLA sectors 28 and 30 are "Oceanic" on LiveATC; they're matched to
   PERTI's High 28 (offshore west of LA) and High 30 (LA-San Diego coast).
+- **ZDV has no Superhigh sectors.** PERTI's ZDV superhigh layer is broken
+  (exact duplicate shapes; numbers 00-06 that aren't Denver's real Ultra
+  High sectors 18/30/46/65/67), so it was left out. Above ~33,000ft in
+  Denver airspace the service answers with the High sector underneath -
+  same situation as ZLA (no Superhigh either). PERTI superhigh also has
+  duplicate numbers for ZFW (65) and ZMA (00, 04, 06) - check those
+  before adding them. Most ZDV LiveATC feeds were DOWN on 2026-09-30;
+  only the 9 UP ones were used - re-paste later to pick up more.
+- ZTL: all 13 LiveATC frequencies match vNAS/CRC. "Ultra Low" (sectors
+  18, 48) is Atlanta's own term, not a new layer - PERTI has them as Low.
+  Sector 08 is "Montgomery Lake" on LiveATC, "Martin Lake" in CRC - used CRC's.
+- ZDV sector 11: LiveATC says 134.500, vNAS/CRC says 120.475. Kept
+  LiveATC's (it's what that feed says it monitors), flagged via `note`.
+- ZDC: LiveATC's "Sector 54 Snow Hill High" is really sector 39 (CRC has
+  Snow Hill = 39 on the same 121.375; PERTI has 39 only as Superhigh) -
+  matched to ZDC-S39, flagged via `note`. The feed titled "SIE54" is 59
+  Sea Isle (its own line and CRC agree). "SWANN" and "Bay" have no number
+  on LiveATC; CRC says Swann = 17 (matched, Low) and Bay = 10 - but PERTI
+  has 10 in High and Superhigh, so Bay is audio-only like ZBW's cases.
+  "Guard Dog" (135.525) isn't in CRC at all - audio-only, no number.
 - Two ZAB sectors (47 Silver City Low, 90 San Simon High) are only on
   LiveATC as UHF frequencies on the Tucson/Davis-Monthan feed - no VHF
   listed. They're kept (not dropped as UHF duplicates, since there's no

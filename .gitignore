@@ -1,0 +1,4 @@
+# PERTI geometry downloaded by tools/add_center.js
+tools/.cache/
+# server.js log (when LOG_FILE isn't set)
+server.log
