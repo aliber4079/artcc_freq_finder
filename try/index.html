@@ -104,6 +104,7 @@
     cross-checked against vNAS/CRC. Altitude splits between layers are estimates
     for most centers. Source:
     <a href="https://github.com/aliber4079/artcc_freq_finder" style="color: var(--muted);">github.com/aliber4079/artcc_freq_finder</a>
+    <div id="commit"></div>
   </footer>
 </main>
 
@@ -173,6 +174,18 @@
     $('json').textContent = JSON.stringify({ version: 1, query: { lat, lon, alt_ft: alt }, results }, null, 2);
     $('jsonBox').hidden = false;
   }
+
+  // Latest commit on main, from GitHub's public API - the version GitHub
+  // Pages builds this page from. Purely informational: if the API is
+  // unreachable or rate-limited (60 requests/hour per visitor), show nothing.
+  fetch('https://api.github.com/repos/aliber4079/artcc_freq_finder/commits/main')
+    .then(r => (r.ok ? r.json() : null))
+    .then(c => {
+      if (!c || !c.sha) return;
+      const date = new Date(c.commit.committer.date).toISOString().slice(0, 10);
+      $('commit').innerHTML = `Latest commit: <a href="${esc(c.html_url)}" style="color: var(--muted);">${esc(c.sha.slice(0, 7))}</a> (${date})`;
+    })
+    .catch(() => {});
 
   $('form').addEventListener('submit', e => { e.preventDefault(); run(); });
   document.querySelectorAll('[data-ex]').forEach(a => a.addEventListener('click', () => {
