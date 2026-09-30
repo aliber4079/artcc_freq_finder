@@ -73,7 +73,13 @@
     "kpcw1_zob_48": "kcle",
     "zob_ckb": "kckb",
     "2g9_zob": "2g9",
-    "zjx_dab": "kdab"
+    "zjx_dab": "kdab",
+    "kbji": "kbji",
+    "kfsd1": "kfsd",
+    "ksux2": "ksux",
+    "d25_133550": "d25",
+    "d25_133650": "d25",
+    "kdlh2": "kdlh"
   },
   "feed_names": {
     "kaug1_zbw_134950": "Boston Center (AUG02 Sector)",
@@ -215,6 +221,19 @@
     "ktlh1_zjx_132825": "Jacksonville Center (Sector 87 Lawtey)",
     "zjx_dab": "ZJX Daytona Beach",
     "kaby1_zjx": "ZJX Jacksonville Ctr (Sector 12/13)",
-    "ksav1_zjx": "ZJX Sectors 67/68/73"
+    "ksav1_zjx": "ZJX Sectors 67/68/73",
+    "kbji": "KBJI CTAF/ZMP",
+    "kfsd1": "KFSD Twr/App/Dep/ZMP",
+    "ksux2": "KSUX Twr/App/ZMP",
+    "ktvc2_all": "KTVC Ground/Tower/Center",
+    "d25_133550": "Minneapolis Center (Sector 03 Low) #1",
+    "d25_133650": "Minneapolis Center (Sector 03 Low) #2",
+    "klse2_zmp_128600": "Minneapolis Center (Sector 05 LSE Area)",
+    "kgrb1_zmp": "ZMP Sector 04/14",
+    "keau_zmp05_125300": "ZMP Sector 05 (125.3)",
+    "keau_zmp06_134300": "ZMP Sector 06 (134.3)",
+    "keau_zmp16_133750": "ZMP Sector 16 (133.75)",
+    "keau_zmp22_127425": "ZMP Sector 22 (127.425)",
+    "kdlh2": "ZMP Sector 25/DLH ANG"
   }
 }

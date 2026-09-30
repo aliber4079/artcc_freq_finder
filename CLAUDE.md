@@ -48,6 +48,7 @@ handoffs yet. The logic is in `lib/sectors.js`, shared with the map.
 | ZOB (Cleveland) | 40 | 14 | vATCSCC/PERTI |
 | ZID (Indianapolis) | 43 | 9 | vATCSCC/PERTI |
 | ZJX (Jacksonville) | 52 | 14 | vATCSCC/PERTI |
+| ZMP (Minneapolis) | 49 | 17 | vATCSCC/PERTI |
 
 - **ZKC's data is the most solid**: sourced from vzkc.org's own real
   GeoJSON (traced back to CRC video maps + chart, the actual data real
@@ -118,7 +119,11 @@ one-off scripts, so they have no config file.)
    2, ZNY had 2, ZBW had 0, ZAB had 0, ZLA had 12 - all its Low sectors,
    ZDC had 2). Before calling something a miss, look the frequency up in
    the vNAS/CRC positions (see above) - for ZDC that resolved sectors
-   LiveATC names without a number, and a wrong sector number. These become honest "audio, no polygon yet" entries
+   LiveATC names without a number, and a wrong sector number.
+   **When CRC renumbers a sector, also check the location:** the feed's
+   receiver (its airport) should be inside or near the new sector's shape.
+   For ZMP this confirmed both renumbered sectors - and showed LiveATC's
+   sector *names* can be wrong even when its frequency is right. These become honest "audio, no polygon yet" entries
    in the `links` array, not silently dropped and not force-matched.
 7. Watch for real data-entry quirks in LiveATC's own listing before
    assuming your extraction is wrong - confirmed examples so far:
@@ -184,6 +189,15 @@ CENTERS = {
   Morgantown Low" is Low 55. Sector 26 Lake is Superhigh in PERTI, though
   LiveATC says High. Sector 47 Bluffton is real (in CRC) but PERTI has no
   shape for it in any layer - audio-only. All flagged via `note`.
+- ZMP (messiest so far - details in `tools/centers/zmp.config.js`):
+  "83 Tomahawk Super Hi" -> Superhigh 46 and "04/14 White Cloud Low" ->
+  High 13, both by CRC frequency + PERTI; named from CRC (MCD, TKV)
+  because LiveATC's names don't fit the shapes. H13 is the least certain
+  match in the project (number AND layer disagree with LiveATC). Three
+  audio-only: 134.750 (LiveATC 25 vs CRC 22, no PERTI 22), 127.425 "22
+  Black River", 125.025 (no number). Sectors 03/05/25 have extra
+  frequencies not in CRC - kept as secondary feeds; main freq is CRC's.
+  Sector 33: LiveATC 132.050 vs CRC 125.100, kept LiveATC's, flagged.
 - ZJX: 134.450 is audio-only on purpose - LiveATC calls it "Sector 12
   Albany/Dothan" on one feed and "Sector 13 Ashburn Low" on another, and
   CRC has neither a sector 13 nor anything on 134.450. The user could
