@@ -293,6 +293,10 @@ CENTERS = {
 
 - `public/conus.html` - the map app; loads `data/centers.json` at startup
   (so it needs `server.js` running - opening the file directly won't work)
+- `public/openapi.yaml` + `public/docs.html` - OpenAPI description of the
+  frequency service and a Swagger UI page for it (served at `/docs`;
+  Swagger UI loads from the jsdelivr CDN). Keep the yaml in step with
+  `lib/sectors.js` `formatResult` if result fields ever change (v2).
 - `data/centers.json` - every center's sectors, frequencies, feeds
 - `data/liveatc.json` - LiveATC player-link fixes and LiveATC's own feed names
 - `lib/sectors.js` - sector matching + frequency ranking, used by

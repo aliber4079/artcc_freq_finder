@@ -1,0 +1,146 @@
+openapi: 3.0.3
+info:
+  title: ARTCC Frequency Finder
+  version: "1"
+  description: |
+    Given a position and altitude, returns the 2-3 most likely air route
+    traffic control center (ARTCC) sectors and their frequencies, best first,
+    with the LiveATC.net feed for each when one is known.
+
+    Covers the 20 continental US centers. Sector shapes come from
+    vATCSCC/PERTI (VATSIM data, not official FAA data); frequencies and feeds
+    come from LiveATC.net, cross-checked against vNAS/CRC. Altitude splits
+    between layers are estimates for most centers.
+
+    Try it: expand **GET /api/v1/frequencies**, click **Try it out**,
+    enter a position, and click **Execute**.
+servers:
+  - url: /
+paths:
+  /api/v1/frequencies:
+    get:
+      summary: Most likely sectors and frequencies for a position
+      description: |
+        Ranking:
+        1. `inside` - the sector the position is in, at this altitude
+        2. `altitude_split` - the sector just above/below, if a layer change
+           is within 2,000 ft (`alt_diff_ft` says how far and which way)
+        3. `near_border` - neighboring sectors within 20 nm (`distance_nm`)
+
+        Sectors with no known frequency are still returned (`freq: null`).
+        Outside all known sectors, `results` is an empty list.
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          description: Latitude, decimal degrees
+          schema: { type: number, minimum: -90, maximum: 90, example: 35.08 }
+        - name: lon
+          in: query
+          required: true
+          description: Longitude, decimal degrees (negative = west)
+          schema: { type: number, minimum: -180, maximum: 180, example: -106.65 }
+        - name: alt
+          in: query
+          required: true
+          description: Altitude in feet (as FR24 reports it)
+          schema: { type: number, minimum: 0, maximum: 100000, example: 12000 }
+      responses:
+        "200":
+          description: Ranked results (possibly empty)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FrequencyResponse" }
+              example:
+                version: 1
+                query: { lat: 35.08, lon: -106.65, alt_ft: 12000 }
+                results:
+                  - rank: 1
+                    reason: inside
+                    center: ZAB
+                    sector: "17"
+                    sector_code: ZAB-L17
+                    tier: Low
+                    name: Lava
+                    freq: "124.325"
+                    liveatc:
+                      mount: kabq2_zab17
+                      feed_name: ZAB Sector 17 Lava (Low)
+                      url: https://www.liveatc.net/hlisten.php?mount=kabq2_zab17&icao=kabq
+                  - rank: 2
+                    reason: near_border
+                    distance_nm: 10.3
+                    center: ZAB
+                    sector: "94"
+                    sector_code: ZAB-L94
+                    tier: Low
+                    name: CNX
+                    freq: "133.650"
+                    liveatc:
+                      mount: kabq1_1
+                      feed_name: KABQ Twr/App/ZAB
+                      url: https://www.liveatc.net/hlisten.php?mount=kabq1_1&icao=kabq
+        "400":
+          description: Missing or out-of-range parameters
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              example:
+                version: 1
+                error: "lat must be a number from -90 to 90"
+                example: /api/v1/frequencies?lat=35.08&lon=-106.65&alt=12000
+components:
+  schemas:
+    FrequencyResponse:
+      type: object
+      required: [version, query, results]
+      properties:
+        version: { type: integer, example: 1 }
+        query:
+          type: object
+          properties:
+            lat: { type: number }
+            lon: { type: number }
+            alt_ft: { type: number }
+        results:
+          type: array
+          maxItems: 3
+          items: { $ref: "#/components/schemas/Result" }
+    Result:
+      type: object
+      required: [rank, reason, center, sector, sector_code, tier, name, freq, liveatc]
+      properties:
+        rank: { type: integer, description: "1 = most likely" }
+        reason:
+          type: string
+          enum: [inside, altitude_split, near_border]
+        distance_nm:
+          type: number
+          description: Only for near_border - distance to that sector's edge
+        alt_diff_ft:
+          type: number
+          description: Only for altitude_split - how far the layer change is (negative = below)
+        center: { type: string, description: "ARTCC, e.g. ZAB" }
+        sector: { type: string, description: "Sector number, e.g. \"17\"" }
+        sector_code: { type: string, description: "Center + layer letter + number, e.g. ZAB-L17" }
+        tier:
+          type: string
+          enum: [Low, High, Superhigh]
+        name: { type: string, nullable: true }
+        freq:
+          type: string
+          nullable: true
+          description: "e.g. \"124.325\"; a few UHF-only sectors say \"(UHF)\""
+        liveatc:
+          type: object
+          nullable: true
+          properties:
+            mount: { type: string }
+            feed_name: { type: string, nullable: true }
+            url: { type: string, description: LiveATC player page for this feed }
+    Error:
+      type: object
+      properties:
+        version: { type: integer }
+        error: { type: string }
+        example: { type: string }

@@ -34,7 +34,10 @@ const STATIC_FILES = {
   '/index.html': ['public/conus.html', 'text/html'],
   '/data/centers.json': ['data/centers.json', 'application/json'],
   '/data/liveatc.json': ['data/liveatc.json', 'application/json'],
-  '/lib/sectors.js': ['lib/sectors.js', 'text/javascript']
+  '/lib/sectors.js': ['lib/sectors.js', 'text/javascript'],
+  // Swagger UI for the frequency service - try it at /docs
+  '/docs': ['public/docs.html', 'text/html'],
+  '/openapi.yaml': ['public/openapi.yaml', 'text/yaml']
 };
 
 // Sector data for the frequency service, loaded once at startup - restart
