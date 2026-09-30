@@ -4,10 +4,11 @@
 
 ## What this is, right now
 
-A web app (`public/conus.html` + `server.js`, data in `data/centers.json`) that matches a live flight's
-position/altitude to the specific ATC sector controlling it, then to
-that sector's real LiveATC.net audio feed. Multi-center, with a
-dropdown selector - not the old single-city CLI script.
+A web service + map (`server.js` + `public/conus.html`, data in
+`data/centers.json`) that matches a position/altitude (or a live flight)
+to the ATC sector controlling it, then to that sector's real LiveATC.net
+audio feed. Covers all 20 continental US centers; the map shows them all
+at once, and its dropdown only moves the map.
 
 **The old Python CLI tool (`artcc_lookup.py`) has been explicitly
 retired.** Do not resurrect it or suggest extending it.
@@ -54,6 +55,13 @@ handoffs yet. The logic is in `lib/sectors.js`, shared with the map.
 | ZSE (Seattle) | 49 | 37 | vATCSCC/PERTI |
 | ZOA (Oakland) | 37 | 18 | vATCSCC/PERTI |
 | ZFW (Fort Worth) | 52 | 10 | vATCSCC/PERTI |
+| ZMA (Miami) | 49 | 43 | vATCSCC/PERTI |
+
+**All 20 continental US centers are in (2026-09-30):** 931 sector shapes,
+275 with live audio, 41 audio-only entries, 270 distinct LiveATC feeds.
+Alaska (ZAN) and Honolulu (ZHN) are not included. 49 feeds from the
+first four centers (ZKC/ZME/ZAU/ZNY) have no LiveATC feed name - those
+pastes lacked the feed-name column; re-pasting them would fill it in.
 
 - **ZKC's data is the most solid**: sourced from vzkc.org's own real
   GeoJSON (traced back to CRC video maps + chart, the actual data real
@@ -201,6 +209,11 @@ CENTERS = {
   numbered freqs match CRC; CRC numbered the 3 unnumbered Missoula ones
   (132.400 = 06, 133.400 = 19, 127.075 = 12 - no PERTI 12, audio-only).
   The Missoula feed (kmso) also carries Seattle Center 128.450 - see ZSE.
+- ZMA: 18 of 21 freqs match CRC. "41 Junar Low" 135.600 -> Low 42 (CRC
+  Bimini Low; shape contains Bimini, 1 nm from the Miami receiver). 26
+  Homestead matched without CRC (receiver inside). Audio-only: 17 APOLO
+  (no PERTI shape) and 124.825 (LiveATC says 08, CRC says 89 FROSTY, no
+  shape). PERTI superhigh 00/04/06 dropped (2-3 different shapes each).
 - ZFW (tangled - details in `tools/centers/zfw.config.js`): CRC agreed
   with LiveATC on only 3 of 9. Two LiveATC labels fixed by CRC frequency
   + PERTI + receiver location: "20 Millsap Low" 127.000 -> Low 32,
