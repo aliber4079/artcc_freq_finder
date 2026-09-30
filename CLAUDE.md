@@ -50,6 +50,8 @@ handoffs yet. The logic is in `lib/sectors.js`, shared with the map.
 | ZJX (Jacksonville) | 52 | 14 | vATCSCC/PERTI |
 | ZMP (Minneapolis) | 49 | 17 | vATCSCC/PERTI |
 | ZHU (Houston) | 57 | 6 | vATCSCC/PERTI |
+| ZLC (Salt Lake) | 62 | 24 | vATCSCC/PERTI |
+| ZSE (Seattle) | 49 | 37 | vATCSCC/PERTI |
 
 - **ZKC's data is the most solid**: sourced from vzkc.org's own real
   GeoJSON (traced back to CRC video maps + chart, the actual data real
@@ -190,6 +192,19 @@ CENTERS = {
   Morgantown Low" is Low 55. Sector 26 Lake is Superhigh in PERTI, though
   LiveATC says High. Sector 47 Bluffton is real (in CRC) but PERTI has no
   shape for it in any layer - audio-only. All flagged via `note`.
+- **ZLC sectors are stacked:** each number has the same shape in every
+  PERTI layer it appears in (surface to top, LiveATC's "Low/Hi/Ultra Hi"),
+  so each feed is attached to all of that sector's layers. Check for this
+  (compare Shape_Area across layers) in other western centers. All 7
+  numbered freqs match CRC; CRC numbered the 3 unnumbered Missoula ones
+  (132.400 = 06, 133.400 = 19, 127.075 = 12 - no PERTI 12, audio-only).
+  The Missoula feed (kmso) also carries Seattle Center 128.450 - see ZSE.
+- ZSE: all 16 numbered freqs match CRC. ZSE High and Superhigh are
+  stacked (same numbers, same shapes), so High feeds are attached to the
+  Superhigh copy too. Missoula's "Mullan Pass" 128.450 is sector 07 per
+  CRC, but PERTI's 07 is ~160 nm from Missoula and ~90 nm from Mullan
+  Pass - failed the location check, so audio-only (first real use of it).
+  Sector 36's extra 121.400 isn't in CRC - secondary feed.
 - ZHU: all 6 frequencies match vNAS/CRC. Sector 76 is "High" on LiveATC
   but Superhigh in PERTI (shape covers San Antonio, the receiver).
 - ZMP (messiest so far - details in `tools/centers/zmp.config.js`):
