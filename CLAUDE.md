@@ -306,6 +306,14 @@ CENTERS = {
   show the LiveATC admin.
 - `data/centers.json` - every center's sectors, frequencies, feeds
 - `data/liveatc.json` - LiveATC player-link fixes and LiveATC's own feed names
+- `data/PERTI-LICENSE` - PERTI's MIT license; required to be kept with the
+  PERTI-derived shapes in `data/centers.json`. Don't remove it.
+- `README.md` - public-facing intro (what it is, the live test page, caveats,
+  credits). Public counts there are per distinct sector (~700 sectors, ~235
+  with a feed), not per shape (931 / 275) - shapes repeat across layers.
+- Announced 2026-09-30 in the LiveATC forums' ARTCC/FIR/TRACON Maps board
+  as a beta, asking listeners to report wrong sectors/frequencies/feeds:
+  https://forums.liveatc.net/artccfirtracon-maps/which-center-sector-is-that-airplane-in-position-in-liveatc-feed-out/
 - `lib/sectors.js` - sector matching + frequency ranking, used by
   `server.js`. The map loads it only for building LiveATC links; for
   "which sector is this flight in" the map calls `/api/v1/frequencies`
