@@ -49,6 +49,7 @@ handoffs yet. The logic is in `lib/sectors.js`, shared with the map.
 | ZID (Indianapolis) | 43 | 9 | vATCSCC/PERTI |
 | ZJX (Jacksonville) | 52 | 14 | vATCSCC/PERTI |
 | ZMP (Minneapolis) | 49 | 17 | vATCSCC/PERTI |
+| ZHU (Houston) | 57 | 6 | vATCSCC/PERTI |
 
 - **ZKC's data is the most solid**: sourced from vzkc.org's own real
   GeoJSON (traced back to CRC video maps + chart, the actual data real
@@ -189,6 +190,8 @@ CENTERS = {
   Morgantown Low" is Low 55. Sector 26 Lake is Superhigh in PERTI, though
   LiveATC says High. Sector 47 Bluffton is real (in CRC) but PERTI has no
   shape for it in any layer - audio-only. All flagged via `note`.
+- ZHU: all 6 frequencies match vNAS/CRC. Sector 76 is "High" on LiveATC
+  but Superhigh in PERTI (shape covers San Antonio, the receiver).
 - ZMP (messiest so far - details in `tools/centers/zmp.config.js`):
   "83 Tomahawk Super Hi" -> Superhigh 46 and "04/14 White Cloud Low" ->
   High 13, both by CRC frequency + PERTI; named from CRC (MCD, TKV)

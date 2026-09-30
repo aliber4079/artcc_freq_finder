@@ -79,7 +79,10 @@
     "ksux2": "ksux",
     "d25_133550": "d25",
     "d25_133650": "d25",
-    "kdlh2": "kdlh"
+    "kdlh2": "kdlh",
+    "zhu_aus1": "kaus",
+    "zhu_aus2": "kaus",
+    "zhu_aus3": "kaus"
   },
   "feed_names": {
     "kaug1_zbw_134950": "Boston Center (AUG02 Sector)",
@@ -234,6 +237,12 @@
     "keau_zmp06_134300": "ZMP Sector 06 (134.3)",
     "keau_zmp16_133750": "ZMP Sector 16 (133.75)",
     "keau_zmp22_127425": "ZMP Sector 22 (127.425)",
-    "kdlh2": "ZMP Sector 25/DLH ANG"
+    "kdlh2": "ZMP Sector 25/DLH ANG",
+    "kiah3_zhu_124700": "Houston Center (Sector 36)",
+    "kiah3_zhu_132775": "Houston Center (Sector 46)",
+    "ksat1_zhu_125625": "Houston Center (Sector 76 High)",
+    "zhu_aus2": "ZHU Houston Center (Sector 78)",
+    "zhu_aus3": "ZHU Houston Center (Sector 80)",
+    "zhu_aus1": "ZHU Houston Center (Sector 96)"
   }
 }
