@@ -52,6 +52,7 @@ handoffs yet. The logic is in `lib/sectors.js`, shared with the map.
 | ZHU (Houston) | 57 | 6 | vATCSCC/PERTI |
 | ZLC (Salt Lake) | 62 | 24 | vATCSCC/PERTI |
 | ZSE (Seattle) | 49 | 37 | vATCSCC/PERTI |
+| ZOA (Oakland) | 37 | 18 | vATCSCC/PERTI |
 
 - **ZKC's data is the most solid**: sourced from vzkc.org's own real
   GeoJSON (traced back to CRC video maps + chart, the actual data real
@@ -199,6 +200,9 @@ CENTERS = {
   numbered freqs match CRC; CRC numbered the 3 unnumbered Missoula ones
   (132.400 = 06, 133.400 = 19, 127.075 = 12 - no PERTI 12, audio-only).
   The Missoula feed (kmso) also carries Seattle Center 128.450 - see ZSE.
+- ZOA: all 10 freqs match CRC. 15 and 34 stacked. 35 (big offshore
+  sector): Low/High shapes identical, Superhigh smaller; no layer on
+  LiveATC and one CRC position, so the feed is on all three layers.
 - ZSE: all 16 numbered freqs match CRC. ZSE High and Superhigh are
   stacked (same numbers, same shapes), so High feeds are attached to the
   Superhigh copy too. Missoula's "Mullan Pass" 128.450 is sector 07 per

@@ -91,7 +91,12 @@
     "zse_kmfr_124850": "kmfr",
     "zse_kmfr": "kmfr",
     "zse_kmfr_127550": "kmfr",
-    "ksea_zse_126600": "ksea"
+    "ksea_zse_126600": "ksea",
+    "kcic1": "kcic",
+    "krno": "krno",
+    "zoa_35": "ksfo",
+    "zoa_sfo": "ksfo",
+    "kfat3": "kfat"
   },
   "feed_names": {
     "kaug1_zbw_134950": "Boston Center (AUG02 Sector)",
@@ -276,6 +281,13 @@
     "keug3_zse_132075_127550": "Seattle Center (Sectors 42/36)",
     "kpdx_zse": "ZSE Seattle Center (PDX Area)",
     "kbdn2_zse05": "ZSE Seattle Center (Sector 05)",
-    "kbdn2_zse35": "ZSE Seattle Center (Sector 35)"
+    "kbdn2_zse35": "ZSE Seattle Center (Sector 35)",
+    "kcic1": "KCIC Tower/ZOA42",
+    "krno": "KRNO Del/Gnd/Twr/App/ZOA",
+    "zoa_35": "ZOA Oakland Center (35)",
+    "zoa_sfo": "ZOA Oakland Center (35/40/41)",
+    "ktrk_zoa44": "ZOA Oakland Center (44)",
+    "kfat3": "ZOA Oakland Center (Fresno)",
+    "kprb1_zoa10": "ZOA Sector 10"
   }
 }
