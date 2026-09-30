@@ -77,9 +77,11 @@
     feed when one is known. Covers the 20 continental US centers.</p>
 
   <form id="form">
-    <label>Latitude <input id="lat" inputmode="decimal" placeholder="35.08" required></label>
-    <label>Longitude <input id="lon" inputmode="decimal" placeholder="-106.65" required></label>
-    <label>Altitude (ft) <input id="alt" inputmode="numeric" placeholder="12000" required></label>
+    <!-- Real starting values, not placeholders: grey placeholder text looked
+         like a filled-in value, so clicking Find on an "empty" form was confusing -->
+    <label>Latitude <input id="lat" inputmode="decimal" value="35.08" required></label>
+    <label>Longitude <input id="lon" inputmode="decimal" value="-106.65" required></label>
+    <label>Altitude (ft) <input id="alt" inputmode="numeric" value="12000" required></label>
     <button id="go" type="submit" disabled>Find</button>
   </form>
   <div class="examples">Examples:
