@@ -53,6 +53,7 @@ handoffs yet. The logic is in `lib/sectors.js`, shared with the map.
 | ZLC (Salt Lake) | 62 | 24 | vATCSCC/PERTI |
 | ZSE (Seattle) | 49 | 37 | vATCSCC/PERTI |
 | ZOA (Oakland) | 37 | 18 | vATCSCC/PERTI |
+| ZFW (Fort Worth) | 52 | 10 | vATCSCC/PERTI |
 
 - **ZKC's data is the most solid**: sourced from vzkc.org's own real
   GeoJSON (traced back to CRC video maps + chart, the actual data real
@@ -95,7 +96,7 @@ handoffs yet. The logic is in `lib/sectors.js`, shared with the map.
 LiveATC table (see `zdv`/`ztl` configs for the format and comments), then
 `node tools/add_center.js tools/centers/<artcc>.config.js`. It pulls PERTI
 geometry (cached in `tools/.cache/`, gitignored), refuses duplicate PERTI
-sector codes and unmatched (tier, number) pairs, writes both data files in
+sector codes (unless listed in `dropSectors`) and unmatched (tier, number) pairs, writes both data files in
 their one-entry-per-line layout, and warns about mounts with no icao.
 Restart the server afterwards. (Centers before ZDV were added with
 one-off scripts, so they have no config file.)
@@ -200,6 +201,13 @@ CENTERS = {
   numbered freqs match CRC; CRC numbered the 3 unnumbered Missoula ones
   (132.400 = 06, 133.400 = 19, 127.075 = 12 - no PERTI 12, audio-only).
   The Missoula feed (kmso) also carries Seattle Center 128.450 - see ZSE.
+- ZFW (tangled - details in `tools/centers/zfw.config.js`): CRC agreed
+  with LiveATC on only 3 of 9. Two LiveATC labels fixed by CRC frequency
+  + PERTI + receiver location: "20 Millsap Low" 127.000 -> Low 32,
+  "25 Scurry Low" 135.250 -> Low 29. Three audio-only (two "Intermediate"
+  freqs not in CRC, and 39 which isn't in CRC or PERTI). 63 Abilene
+  matched without CRC (receiver inside the shape). PERTI's Superhigh 65
+  is two different shapes 100+ nm apart - dropped via `dropSectors`.
 - ZOA: all 10 freqs match CRC. 15 and 34 stacked. 35 (big offshore
   sector): Low/High shapes identical, Superhigh smaller; no layer on
   LiveATC and one CRC position, so the feed is on all three layers.

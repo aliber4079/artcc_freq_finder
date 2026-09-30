@@ -96,7 +96,8 @@
     "krno": "krno",
     "zoa_35": "ksfo",
     "zoa_sfo": "ksfo",
-    "kfat3": "kfat"
+    "kfat3": "kfat",
+    "ktyr2_ctr": "ktyr"
   },
   "feed_names": {
     "kaug1_zbw_134950": "Boston Center (AUG02 Sector)",
@@ -288,6 +289,14 @@
     "zoa_sfo": "ZOA Oakland Center (35/40/41)",
     "ktrk_zoa44": "ZOA Oakland Center (44)",
     "kfat3": "ZOA Oakland Center (Fresno)",
-    "kprb1_zoa10": "ZOA Sector 10"
+    "kprb1_zoa10": "ZOA Sector 10",
+    "kmwl_zfw_127000": "Forth Worth Center (Sector 20)",
+    "kmwl_zfw_120350": "Forth Worth Center (Sector 32)",
+    "kmwl_zfw_121375": "Forth Worth Center (Sector 39)",
+    "kabi4_zfw_127450": "ZFW 63 (Abilene Low)",
+    "kact1_zfw_133300": "ZFW Fort Worth Center (Sector 96 Waco Low)",
+    "ktyr2_ctr": "ZFW Sector 25",
+    "kmlu_zfw_126325": "ZFW Sector 30 (Monroe Low)",
+    "kprx1_zfw42": "ZFW Sector 42"
   }
 }

@@ -10,8 +10,10 @@
 // against vNAS/CRC: https://data-api.vnas.vatsim.net/api/artccs/<ARTCC>
 // (facility.positions) - see CLAUDE.md for the full recipe.
 //
-// Config exports: { center, displayName, skipTiers?, links, preferred?,
-//   icaoOverrides?, feedNames?, sectorNotes?, audioOnlyLabel? }
+// Config exports: { center, displayName, skipTiers?, dropSectors?, links,
+//   preferred?, icaoOverrides?, feedNames?, sectorNotes?, audioOnlyLabel? }
+// dropSectors: sector codes to leave out entirely - for PERTI entries
+//   that are ambiguous (e.g. two different shapes under one code)
 // links rows: [LiveATC title, freq, mount, tier|null, sector number|null, name]
 //   tier or number null -> audio-only entry (no confirmed polygon)
 // preferred: { '<sector code>' or 'audio:<num>': mount } - which feed a
@@ -94,6 +96,7 @@ async function main() {
     (await loadPerti(file + '.json')).features.filter(f => f.properties.artcc === CENTER).forEach(f => {
       if (f.geometry.type !== 'Polygon') throw new Error('unexpected geometry ' + f.geometry.type);
       const code = `${CENTER}-${letter}${f.properties.sector}`;
+      if ((cfg.dropSectors || []).includes(code)) return;
       if (sectors[code]) throw new Error(`duplicate ${code} in PERTI ${file} - bad data, check it (skipTiers?) before continuing`);
       sectors[code] = { tier, sector_num: f.properties.sector, polygon: f.geometry.coordinates[0].map(([lon, lat]) => [lat, lon]) };
     });
