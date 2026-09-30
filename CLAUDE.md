@@ -45,6 +45,9 @@ handoffs yet. The logic is in `lib/sectors.js`, shared with the map.
 | ZDC (Washington) | 56 | 30 | vATCSCC/PERTI |
 | ZDV (Denver) | 35 (Low + High only) | 9 | vATCSCC/PERTI |
 | ZTL (Atlanta) | 45 | 16 | vATCSCC/PERTI |
+| ZOB (Cleveland) | 40 | 14 | vATCSCC/PERTI |
+| ZID (Indianapolis) | 43 | 9 | vATCSCC/PERTI |
+| ZJX (Jacksonville) | 52 | 14 | vATCSCC/PERTI |
 
 - **ZKC's data is the most solid**: sourced from vzkc.org's own real
   GeoJSON (traced back to CRC video maps + chart, the actual data real
@@ -176,6 +179,21 @@ CENTERS = {
   duplicate numbers for ZFW (65) and ZMA (00, 04, 06) - check those
   before adding them. Most ZDV LiveATC feeds were DOWN on 2026-09-30;
   only the 9 UP ones were used - re-paste later to pick up more.
+- ZOB: two LiveATC numbering errors, resolved by frequency in vNAS/CRC and
+  confirmed by PERTI: "Sector 51 Palmer High" is Superhigh 58, "Sector 61
+  Morgantown Low" is Low 55. Sector 26 Lake is Superhigh in PERTI, though
+  LiveATC says High. Sector 47 Bluffton is real (in CRC) but PERTI has no
+  shape for it in any layer - audio-only. All flagged via `note`.
+- ZJX: 134.450 is audio-only on purpose - LiveATC calls it "Sector 12
+  Albany/Dothan" on one feed and "Sector 13 Ashburn Low" on another, and
+  CRC has neither a sector 13 nor anything on 134.450. The user could
+  settle it by ear (like ZME 34). Sector 67 Hunter is real (in CRC) but
+  PERTI has no 67 - audio-only. Sectors 35 and 58 are "Low/High" on
+  LiveATC - feed attached to both layers.
+- ZID: vNAS/CRC has no ZID Ultra High positions at all, so it can't
+  confirm sector 97 Lockbourne - matched to PERTI Superhigh 97 on
+  LiveATC's word alone. A sector missing from CRC is only a red flag if
+  CRC normally covers that layer for the center. Sector 75 "Int/Hi" = High.
 - ZTL: all 13 LiveATC frequencies match vNAS/CRC. "Ultra Low" (sectors
   18, 48) is Atlanta's own term, not a new layer - PERTI has them as Low.
   Sector 08 is "Montgomery Lake" on LiveATC, "Martin Lake" in CRC - used CRC's.
