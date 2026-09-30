@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CONUS Sector Finder</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<style>
+  html, body { margin: 0; height: 100%; background: #0a0e17; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  #map { position: absolute; top: 64px; left: 320px; right: 320px; bottom: 0; background: #0a0e17; }
+  #bar {
+    position: absolute; top: 0; left: 0; right: 0; height: 64px;
+    background: #12161f; border-bottom: 1px solid #2a2f3a;
+    display: flex; align-items: center; gap: 10px; padding: 0 16px;
+    z-index: 1000; box-sizing: border-box;
+  }
+  #bar input[type=text] {
+    background: #1c2130; border: 1px solid #333a4a; color: #e8ecf4;
+    padding: 8px 12px; border-radius: 6px; font-size: 15px; width: 140px;
+    text-transform: uppercase;
+  }
+  #bar button {
+    background: #3b5bdb; border: none; color: white; padding: 9px 18px;
+    border-radius: 6px; font-size: 15px; cursor: pointer; font-weight: 600;
+  }
+  #bar button:hover { background: #364fc7; }
+  #buildBadge {
+    position: absolute; bottom: 8px; left: 328px; z-index: 1000;
+    background: #12161f; border: 1px solid #2a2f3a; color: #6b7383;
+    font-size: 11px; padding: 4px 8px; border-radius: 5px;
+    font-family: monospace;
+  }
+  #status { color: #9aa4b8; font-size: 13px; margin-left: 4px; }
+  #status.err { color: #ff6b6b; }
+  #status.ok { color: #63e6be; }
+  #mismatchBanner {
+    position: absolute; top: 64px; left: 320px; right: 320px; z-index: 1001;
+    padding: 10px 16px; font-size: 14px; font-weight: 600; display: none;
+    text-align: center;
+  }
+  #mismatchBanner.match { display: block; background: #1a3a2a; color: #63e6be; border-bottom: 1px solid #2f9e44; }
+  #mismatchBanner.mismatch { display: block; background: #3a1a1a; color: #ff8787; border-bottom: 1px solid #c92a2a; }
+  #mismatchBanner.none { display: block; background: #2a2410; color: #e8a33d; border-bottom: 1px solid #8a6d1f; }
+  .sector-label {
+    color: #f0f2f6; font-size: 11px; font-weight: 700; white-space: nowrap;
+    background: rgba(8, 10, 16, 0.82); padding: 2px 5px; border-radius: 0;
+    border: 1px solid rgba(255,255,255,0.15);
+    display: inline-block; box-sizing: border-box;
+  }
+  .sector-label .label-name {
+    display: inline-block; max-width: 20ch; overflow: hidden;
+    text-overflow: ellipsis; vertical-align: bottom; white-space: nowrap;
+  }
+  .plane-icon-wrap { filter: drop-shadow(0 0 3px #000) drop-shadow(0 0 4px #000); }
+  .leaflet-popup-content-wrapper { background: #1c2130; color: #e8ecf4; }
+  .leaflet-popup-tip { background: #1c2130; }
+
+  #tierTabs {
+    position: absolute; top: 104px; left: 330px; z-index: 1000;
+    display: flex; gap: 6px;
+  }
+  #tierTabs button {
+    background: #1c2130; border: 1px solid #333a4a; color: #9aa4b8;
+    padding: 6px 14px; border-radius: 6px; font-size: 13px; cursor: pointer;
+  }
+  #tierTabs button.active { background: #3b5bdb; color: white; border-color: #3b5bdb; }
+
+  /* ---- Left panel: LiveATC links ---- */
+  #linksPanel {
+    position: absolute; left: 0; top: 64px; bottom: 0; width: 320px;
+    background: #12161f; border-right: 1px solid #2a2f3a; z-index: 999;
+    display: flex; flex-direction: column;
+  }
+  #linksPanel h3 { margin: 0; padding: 12px 14px; font-size: 14px; color: #e8ecf4; border-bottom: 1px solid #2a2f3a; }
+  #linksList { flex: 1; overflow-y: auto; }
+  .linkEntry {
+    display: block; padding: 9px 14px; border-bottom: 1px solid #1c2130;
+    color: #cdd4e0; text-decoration: none; font-size: 13px; cursor: pointer;
+  }
+  .linkEntry:hover { background: #1c2130; }
+  .linkEntry.active { background: #1a2540; border-left: 3px solid #3b5bdb; }
+  .linkEntry .tierTag {
+    display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 3px;
+    margin-right: 6px; font-weight: 700;
+  }
+  .linkEntry .tierTag.Low { background: #2f7a45; color: #d3f9d8; }
+  .linkEntry .tierTag.High { background: #3b5bdb; color: #dbe4ff; }
+  .linkEntry .tierTag.Ultra { background: #a12222; color: #ffd8d8; }
+  .linkEntry .freq { color: #6b7383; font-size: 11px; }
+  .linkEntry .feedName { color: #6b7383; font-size: 11px; margin-top: 2px; }
+  #linksSearch {
+    margin: 8px 14px; padding: 6px 8px; font-size: 12px;
+    background: #0b0e14; color: #e8ecf4; border: 1px solid #2a2f3a; border-radius: 3px;
+  }
+  .linkEntry .openIcon { float: right; color: #6b7383; }
+  .centerHeading {
+    padding: 7px 14px;
+    background: #1c2130; color: #e8ecf4; font-size: 12px; font-weight: 700;
+    border-bottom: 1px solid #2a2f3a;
+  }
+
+  .resizeHandle {
+    position: absolute; top: 0; bottom: 0; width: 8px;
+    cursor: ew-resize; z-index: 1002; background: transparent;
+  }
+  .resizeHandle:hover, .resizeHandle.dragging { background: rgba(59,91,219,0.5); }
+  #linksResizeHandle { right: -4px; }
+  #logResizeHandle { left: -4px; }
+
+  /* ---- Right panel: observation log ---- */
+  #logPanel {
+    position: absolute; right: 0; top: 64px; bottom: 0; width: 320px;
+    background: #12161f; border-left: 1px solid #2a2f3a; z-index: 999;
+    display: flex; flex-direction: column;
+  }
+  #logHeader { padding: 12px 14px; border-bottom: 1px solid #2a2f3a; }
+  #logHeader h3 { margin: 0 0 8px 0; color: #e8ecf4; font-size: 14px; }
+  #logForm { display: flex; flex-direction: column; gap: 6px; }
+  #logForm select, #logForm input {
+    background: #1c2130; border: 1px solid #333a4a; color: #e8ecf4;
+    padding: 6px 8px; border-radius: 5px; font-size: 13px;
+  }
+  #logForm button {
+    background: #2f9e44; border: none; color: white; padding: 7px;
+    border-radius: 5px; font-size: 13px; cursor: pointer; font-weight: 600;
+  }
+  #logForm button:hover { background: #2b8a3e; }
+  #logList { flex: 1; overflow-y: auto; padding: 8px 14px; font-size: 12px; }
+  .logEntry { border-bottom: 1px solid #22262f; padding: 8px 0; color: #cdd4e0; }
+  .logEntry .flight { font-weight: 700; color: #e8ecf4; }
+  .logEntry .time { color: #6b7383; font-size: 11px; }
+  .logEntry .match { color: #63e6be; }
+  .logEntry .mismatch { color: #ff6b6b; }
+  .logEntry .sectorRef { border-bottom: 1px dotted #6b7383; cursor: default; }
+  .logEntry .sectorRef:hover { color: #ffe600; border-bottom-color: #ffe600; }
+  #logFooter { padding: 10px 14px; border-top: 1px solid #2a2f3a; }
+  #logFooter button {
+    width: 100%; background: #333a4a; border: none; color: #e8ecf4;
+    padding: 7px; border-radius: 5px; font-size: 12px; cursor: pointer;
+  }
+  #logFooter button:hover { background: #3d4457; }
+</style>
+</head>
+<body>
+
+<div id="bar">
+  <select id="centerSelect" style="background:#1c2130; border:1px solid #333a4a; color:#e8ecf4; padding:8px 10px; border-radius:6px; font-size:14px;"></select>
+  <input type="text" id="flightInput" placeholder="e.g. EJA101" autocomplete="off">
+  <button id="goBtn">Locate</button>
+  <label style="color:#9aa4b8; font-size:12px; display:flex; align-items:center; gap:4px;">
+    Display last <input type="number" id="maxPlanesInput" value="10" min="1" max="200" style="width:50px; padding:4px 6px;"> flights
+  </label>
+  <span id="status"></span>
+</div>
+
+<div id="linksPanel">
+  <h3>LiveATC Links</h3>
+  <input type="search" id="linksSearch" placeholder="Search: sector, frequency, or LiveATC feed name">
+  <div id="linksList"></div>
+  <div id="linksResizeHandle" class="resizeHandle"></div>
+</div>
+
+<div id="tierTabs"></div>
+
+<div id="mismatchBanner"></div>
+<div id="map"></div>
+<div id="buildBadge">build 1 (conus.html) &middot; 2026-09-08</div>
+
+<div id="logPanel">
+  <div id="logResizeHandle" class="resizeHandle"></div>
+  <div id="logHeader">
+    <h3>Log observation</h3>
+    <div id="logForm">
+      <div id="predictedLine" style="color:#9aa4b8;">Locate a flight first...</div>
+      <div id="listeningLine" style="color:#9aa4b8; white-space:pre-line;">Not listening to any link yet - click one on the left.</div>
+      <input type="text" id="noteInput" placeholder="Note (optional)">
+    </div>
+  </div>
+  <div id="logList"></div>
+  <div id="logFooter">
+    <button id="exportBtn">Export CSV</button>
+    <button id="clearBtn" style="margin-top:6px; background:#8a2a2a;">Clear all observations</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="lib/sectors.js"></script>
+<!-- A module script, so it can wait for the sector data to load before running -->
+<script type="module">
+// --- Real ARTCC sector data for every center (shapes, frequencies, feeds).
+// Lives in data/centers.json, shared with server.js; see CLAUDE.md for
+// where each center's data came from and how confident it is.
+const CENTERS = await fetch('data/centers.json').then(r => r.json());
+
+// Every center is shown on the map at once, as one combined view built
+// from the real entries above (no duplicated data). Each sector keeps a
+// `center` field so labels still say ZNY / ZBW, and so flight matching
+// uses that sector's own center's altitude splits.
+// Safe to merge because sector codes are unique across centers.
+function combineCenters(codes, displayName) {
+  const first = CENTERS[codes[0]];
+  const combined = {
+    displayName,
+    lowHighSplitFt: first.lowHighSplitFt,
+    highSuperhighSplitFt: first.highSuperhighSplitFt,
+    sectors: {},
+    links: []
+  };
+  codes.forEach(c => {
+    Object.entries(CENTERS[c].sectors).forEach(([code, s]) => { combined.sectors[code] = { ...s, center: c }; });
+    combined.links.push(...(CENTERS[c].links || []).map(l => ({ ...l, center: c })));
+  });
+  return combined;
+}
+const REAL_CENTERS = Object.keys(CENTERS);
+CENTERS.ALL = combineCenters(REAL_CENTERS, 'All centers');
+const VIEW = 'ALL'; // the map, links list and flight matching always use every center
+
+// Sectors left out when zooming to a center, so the starting view is the
+// land part rather than the whole ocean. ZNY's oceanic sectors reach out
+// to 40W and down to 18N; without this, the map zooms out to mid-Atlantic.
+// (They're still drawn and still used for flight matching.)
+const ZOOM_SKIP_SECTORS = {
+  ZNY: ['16', '18', '21', '65', '80', '81', '82', '83', '85', '86', '87', '88', '89', '90']
+};
+
+// ZKC calls its top tier "Ultra", the others "Superhigh" - same layer, so
+// they share one tab on the map.
+function tierGroup(tier) { return tier === 'Superhigh' ? 'Ultra' : tier; }
+
+// Altitude split between Low and High tiers (~FL230/240, standard FAA
+// convention). Center-level highSuperhighSplitFt is a fallback only -
+// used when a sector doesn't have its own alt_floor_ft (ZKC's Ultra
+// sectors mostly do; ZME's Superhigh sectors don't yet, so they rely on
+// this less precise center-level estimate).
+
+
+// LiveATC player-link fixes (icao_overrides) and LiveATC's own feed names -
+// both in data/liveatc.json, shared with server.js.
+const { icao_overrides: ICAO_OVERRIDES, feed_names: FEED_NAMES } = await fetch('data/liveatc.json').then(r => r.json());
+
+// Extra lines for the "Listening to" text: the LiveATC feed name (what its
+// pop-up window says), and - when one feed scans several sectors - every
+// sector on it, so it's clear the audio may not be the one sector clicked.
+function feedSummary(mountId) {
+  if (!mountId) return '';
+  const carried = new Set();
+  Object.values(CENTERS).forEach(c => (c.links || []).forEach(l => {
+    if (l.mount_id === mountId) carried.add(l.title);
+  }));
+  let text = `\nLiveATC feed: ${FEED_NAMES[mountId] || mountId}`;
+  if (carried.size > 1) text += `\nThis feed carries ${carried.size} sectors:\n  ` + [...carried].join('\n  ');
+  return text;
+}
+
+const buildMountUrl = mountId => SectorLib.buildMountUrl(mountId, ICAO_OVERRIDES);
+
+function sectorLabel(centerCode, code) {
+  const info = CENTERS[centerCode].sectors[code];
+  const number = info.sector_num;
+  const name = info.name;
+  const isUltraTier = (info.tier === 'Ultra' || info.tier === 'Superhigh');
+  const tierWord = isUltraTier ? 'Ultra Hi' : info.tier === 'Low' ? 'Low' : 'Hi';
+  return name ? `${info.center || centerCode} ${number} ${name} ${tierWord}` : code;
+}
+
+const map = L.map('map', { zoomControl: false }).setView([38.0, -96.5], 6);
+L.control.zoom({ position: 'topright' }).addTo(map); // top-left was getting covered by the mismatch banner
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors',
+  subdomains: 'abc', maxZoom: 19
+}).addTo(map);
+
+// --- Which sector/frequency: the map asks the frequency service, like any
+// other program would, instead of working it out itself. So what the map
+// shows is exactly what the service answers. Returns the ranked results,
+// or null if the service couldn't be reached. ---
+async function askFrequencyService(lat, lon, altFt) {
+  try {
+    const resp = await fetch(`api/v1/frequencies?lat=${lat}&lon=${lon}&alt=${Math.max(0, Math.round(altFt))}`);
+    const body = await resp.json();
+    if (!resp.ok) { console.error('Frequency service error:', body); return null; }
+    return body.results;
+  } catch (e) {
+    console.error('Frequency service unreachable:', e);
+    return null;
+  }
+}
+
+// One line per ranked answer, for the flight's popup
+function describeResult(r) {
+  const why = r.reason === 'inside' ? 'inside'
+    : r.reason === 'near_border' ? `${r.distance_nm} nm away`
+    : `${Math.abs(r.alt_diff_ft).toLocaleString()} ft ${r.alt_diff_ft < 0 ? 'below' : 'above'}`;
+  const listen = r.liveatc
+    ? ` <a href="${r.liveatc.url}" onclick="openMountPopup('${r.liveatc.url}'); return false;" style="color:#63e6be;">Listen</a>`
+    : ' <span style="color:#6b7383;">(no feed)</span>';
+  return `${r.rank}. ${sectorLabel(VIEW, r.sector_code)} &mdash; ${r.freq || 'freq unknown'} <span style="color:#9aa4b8;">(${why})</span>${listen}`;
+}
+
+// --- ETA to next sector boundary ---
+// Projects the aircraft forward in a straight line at its current track
+// and ground speed, and finds where that line first exits the current
+// sector's polygon (ray-vs-polygon-edge intersection). This assumes
+// constant heading/speed - a real aircraft may turn before then, so
+// treat this as an estimate based on current trajectory, not a
+// guarantee. Returns seconds until exit, or null if track/speed are
+// missing or no valid exit is found.
+function computeETASeconds(lat, lon, trackDeg, gspeedKnots, polygon) {
+  if (typeof trackDeg !== 'number' || typeof gspeedKnots !== 'number' || gspeedKnots <= 0) {
+    return null;
+  }
+  const trackRad = trackDeg * Math.PI / 180;
+  const latRad = lat * Math.PI / 180;
+  const Dx = gspeedKnots * Math.sin(trackRad) / (60 * Math.cos(latRad)); // deg lon / hour
+  const Dy = gspeedKnots * Math.cos(trackRad) / 60;                      // deg lat / hour
+  const Ox = lon, Oy = lat;
+
+  let bestT = null;
+  const n = polygon.length;
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    const [Ay, Ax] = polygon[i];
+    const [By, Bx] = polygon[j];
+    const Ex = Bx - Ax, Ey = By - Ay;
+
+    const denom = Ex * Dy - Ey * Dx;
+    if (Math.abs(denom) < 1e-15) continue; // parallel to this edge
+
+    const t = (Ex * (Ay - Oy) - Ey * (Ax - Ox)) / denom;
+    const s = (Dx * (Ay - Oy) - Dy * (Ax - Ox)) / denom;
+
+    if (t > 1e-9 && s >= -1e-9 && s <= 1 + 1e-9) {
+      if (bestT === null || t < bestT) bestT = t;
+    }
+  }
+  if (bestT === null) return null;
+  return bestT * 3600; // hours -> seconds
+}
+
+function formatETA(seconds) {
+  if (seconds === null) return 'ETA unavailable';
+  const s = Math.max(0, Math.round(seconds));
+  const m = Math.floor(s / 60);
+  const rem = s % 60;
+  return `ETA to sector exit: ${m}:${String(rem).padStart(2, '0')}${s === 0 ? ' (exiting)' : ''}`;
+}
+
+// --- Tier tab switching: redraw only the active tier's polygons ---
+let currentTier = 'High';
+let activeSector = null; // code of the sector whose link was last clicked - declared here (not later) because drawTier() below reads it, and a `let` used before its declaration line throws a ReferenceError that silently kills the rest of the script
+let polygonLayers = [];
+
+// Shared polygon styling logic - used both for the initial draw and for
+// restoring a polygon's normal appearance after a hover-highlight ends.
+function getPolyStyle(centerCode, code) {
+  const info = CENTERS[centerCode].sectors[code];
+  const isActive = code === activeSector;
+  const baseColor = info.mount_id ? '#1a7a3a' : '#b8720a';
+  const color = isActive ? '#d61f1f' : baseColor;
+  return {
+    color: color, weight: isActive ? 5 : 2,
+    fillColor: color, fillOpacity: isActive ? 0.45 : 0.3
+  };
+}
+
+function drawTier(tier) {
+  polygonLayers.forEach(l => map.removeLayer(l.poly));
+  polygonLayers.forEach(l => map.removeLayer(l.label));
+  polygonLayers = [];
+
+  Object.entries(CENTERS[VIEW].sectors).forEach(([code, info]) => {
+    if (tierGroup(info.tier) !== tier) return;
+    const latlngs = info.polygon.map(p => [p[0], p[1]]);
+    const style = getPolyStyle(VIEW, code);
+    const color = style.color; // still needed below for the label dot's inline color
+
+    const poly = L.polygon(latlngs, style).addTo(map);
+    poly.on('mouseover', () => highlightSectorOnMap(code, true));
+    poly.on('mouseout', () => highlightSectorOnMap(code, false));
+
+    const label = sectorLabel(VIEW, code);
+    const provisionalNote = info.provisional
+      ? `<br><span style="color:#e8a33d;">(provisional - ${info.note || 'source flags this tier as unverified'})</span>` : '';
+    const mountIdLine = info.mount_id
+      ? `<br><span style="color:#6b7383; font-size:11px;">${info.mount_id}</span>` : '';
+    const popupHtml = info.mount_id
+      ? `<b>${label}</b><br><a href="${buildMountUrl(info.mount_id)}" onclick="openMountPopup('${buildMountUrl(info.mount_id)}'); return false;" style="color:#63e6be;">Listen (verified link)</a>${mountIdLine}${provisionalNote}`
+      : info.freq
+        ? `<b>${label}</b><br>Freq: ${info.freq}<br><span style="color:#e8a33d;">No known mount in our data</span>${provisionalNote}`
+        : `<b>${label}</b><br><span style="color:#e8a33d;">No known frequency or mount yet</span>${provisionalNote}`;
+    poly.bindPopup(popupHtml);
+
+    const mapLabelText = info.mount_id ? sectorLabel(VIEW, code) : code;
+    const center = poly.getBounds().getCenter();
+    const dot = info.mount_id ? '&#9679;' : '&#9675;';
+    const freqLine = info.freq ? `<br>${info.freq}` : '';
+    const label_marker = L.marker(center, {
+      icon: L.divIcon({ className: '', html: `<div class="sector-label"><span style="color:${color};">${dot}</span> <span class="label-name" title="${mapLabelText}">${mapLabelText}</span>${freqLine}</div>`, iconSize: [130, 48], iconAnchor: [65, 24] })
+    }).addTo(map);
+
+    polygonLayers.push({ poly, label: label_marker, code });
+  });
+  declutterLabels();
+}
+
+// Keep sector labels from covering each other, in screen pixels. Overlaps
+// depend on the zoom level, so this re-runs after every draw and every zoom.
+// Labels are placed one at a time - sectors with audio first - each trying
+// its normal spot, then a few spots close by. A label with no free spot
+// nearby is hidden until the user zooms in far enough for it to fit
+// (pushing it far away instead would put it over the wrong sector).
+function declutterLabels() {
+  const GAP = 3;
+  const items = polygonLayers.map(l => {
+    const el = l.label.getElement() && l.label.getElement().querySelector('.sector-label');
+    if (!el) return null;
+    el.style.transform = '';
+    el.style.visibility = '';
+    const r = el.getBoundingClientRect();
+    const hasAudio = !!CENTERS[VIEW].sectors[l.code].mount_id;
+    return { el, hasAudio, left: r.left, top: r.top, w: r.width + GAP, h: r.height + GAP };
+  }).filter(Boolean);
+  items.sort((a, b) => b.hasAudio - a.hasAudio);
+
+  const placed = [];
+  const fits = (x, y, w, h) => placed.every(p => x >= p.x + p.w || p.x >= x + w || y >= p.y + p.h || p.y >= y + h);
+
+  items.forEach(it => {
+    const { w, h } = it;
+    const candidates = [
+      [0, 0], [0, -h], [0, h], [-w / 2, 0], [w / 2, 0],
+      [-w / 2, -h], [w / 2, -h], [-w / 2, h], [w / 2, h], [0, -2 * h], [0, 2 * h]
+    ];
+    const spot = candidates.find(([dx, dy]) => fits(it.left + dx, it.top + dy, w, h));
+    if (!spot) {
+      it.el.style.visibility = 'hidden';
+      return;
+    }
+    const [dx, dy] = spot;
+    placed.push({ x: it.left + dx, y: it.top + dy, w, h });
+    if (dx || dy) it.el.style.transform = `translate(${Math.round(dx)}px, ${Math.round(dy)}px)`;
+  });
+}
+map.on('zoomend', declutterLabels);
+
+function renderTierTabs() {
+  const tierTabsEl = document.getElementById('tierTabs');
+  const availableTiers = [...new Set(Object.values(CENTERS[VIEW].sectors).map(s => tierGroup(s.tier)))];
+  const tierDisplayOrder = ['Low', 'High', 'Ultra'];
+  const sortedTiers = tierDisplayOrder.filter(t => availableTiers.includes(t));
+
+  tierTabsEl.innerHTML = '';
+  sortedTiers.forEach(tier => {
+    const btn = document.createElement('button');
+    btn.dataset.tier = tier;
+    btn.textContent = tier;
+    if (tier === currentTier) btn.classList.add('active');
+    tierTabsEl.appendChild(btn);
+  });
+
+  document.querySelectorAll('#tierTabs button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#tierTabs button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentTier = btn.dataset.tier;
+      drawTier(currentTier);
+    });
+  });
+}
+
+// --- Center selector: only moves the map. Every center is always drawn. ---
+// It snaps back to "Go to center..." after each pick, so picking the same
+// center again (after panning away) still works.
+const centerSelect = document.getElementById('centerSelect');
+[['', 'Go to center...'], ['ALL', 'All centers'],
+ ...REAL_CENTERS.map(code => [code, `${code} - ${CENTERS[code].displayName}`])
+].forEach(([value, text]) => {
+  const opt = document.createElement('option');
+  opt.value = value;
+  opt.textContent = text;
+  centerSelect.appendChild(opt);
+});
+
+centerSelect.addEventListener('change', () => {
+  const picked = centerSelect.value;
+  centerSelect.value = '';
+  if (!picked) return;
+  // Scroll the links list to that center's heading (or the top for "All")
+  const heading = linksList.querySelector(`.centerHeading[data-center="${picked}"]`);
+  if (heading) linksList.scrollTop = heading.offsetTop - linksList.offsetTop;
+  else if (picked === 'ALL') linksList.scrollTop = 0;
+  // Zoom to the whole center (every tier's sectors, not just the one drawn),
+  // leaving out far-offshore oceanic sectors so the view stays on the land part
+  const allPoints = Object.values(CENTERS[picked].sectors)
+    .filter(s => !(ZOOM_SKIP_SECTORS[s.center || picked] || []).includes(s.sector_num))
+    .flatMap(s => s.polygon);
+  if (allPoints.length) {
+    map.invalidateSize(); // re-measure first - a stale size (e.g. measured before layout settled) makes fitBounds zoom all the way out
+    map.fitBounds(L.latLngBounds(allPoints));
+  }
+});
+
+renderTierTabs();
+drawTier(currentTier);
+
+// --- Resizable side panels ---
+// Keeps #map, #tierTabs, and #mismatchBanner positioned correctly as the
+// left/right panel widths change, and tells Leaflet to redraw at the new
+// size (it doesn't detect container resizes on its own).
+function updateLayout() {
+  const leftW = document.getElementById('linksPanel').offsetWidth;
+  const rightW = document.getElementById('logPanel').offsetWidth;
+  document.getElementById('map').style.left = leftW + 'px';
+  document.getElementById('map').style.right = rightW + 'px';
+  document.getElementById('tierTabs').style.left = (leftW + 10) + 'px';
+  document.getElementById('mismatchBanner').style.left = leftW + 'px';
+  document.getElementById('mismatchBanner').style.right = rightW + 'px';
+  document.getElementById('buildBadge').style.left = (leftW + 8) + 'px';
+  map.invalidateSize();
+}
+
+function makeResizable(handleId, panelId, side) {
+  const handle = document.getElementById(handleId);
+  const panel = document.getElementById(panelId);
+  let dragging = false, startX = 0, startWidth = 0;
+
+  handle.addEventListener('mousedown', (e) => {
+    dragging = true;
+    startX = e.clientX;
+    startWidth = panel.offsetWidth;
+    handle.classList.add('dragging');
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - startX;
+    let newWidth = side === 'left' ? startWidth + dx : startWidth - dx;
+    newWidth = Math.max(200, Math.min(600, newWidth));
+    panel.style.width = newWidth + 'px';
+    updateLayout();
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    handle.classList.remove('dragging');
+    document.body.style.userSelect = '';
+  });
+}
+
+makeResizable('linksResizeHandle', 'linksPanel', 'left');
+makeResizable('logResizeHandle', 'logPanel', 'right');
+
+// --- LiveATC Links panel ---
+function highlightSectorOnMap(code, isHovering) {
+  const entry = polygonLayers.find(l => l.code === code);
+  if (!entry) return; // sector's tier isn't currently displayed - nothing to do
+  if (isHovering) {
+    entry.poly.setStyle({ color: '#ffe600', weight: 6, fillColor: '#ffe600', fillOpacity: 0.35 });
+  } else {
+    entry.poly.setStyle(getPolyStyle(VIEW, code));
+  }
+}
+
+const linksList = document.getElementById('linksList');
+const linksSearch = document.getElementById('linksSearch');
+linksSearch.addEventListener('input', () => renderLinksList());
+
+// Explicitly track the popup window reference rather than relying purely
+// on window.open's "same name reuses it" behavior - that can be
+// inconsistent across browsers (e.g. if the popup was closed, moved, or
+// lost focus in a way the browser doesn't cleanly resolve back to the
+// same name), which was causing a second window to open sometimes.
+let liveatcPopup = null;
+
+function openMountPopup(url) {
+  if (liveatcPopup && !liveatcPopup.closed) {
+    liveatcPopup.location.href = url;
+    liveatcPopup.focus();
+  } else {
+    liveatcPopup = window.open(
+      url,
+      'liveatc_player',
+      'width=420,height=280,toolbar=no,location=no,menubar=no,status=no,scrollbars=no,resizable=yes'
+    );
+  }
+}
+window.openMountPopup = openMountPopup; // map popups' "Listen" links call it by name, and module code isn't global
+
+function renderLinksList() {
+  linksList.innerHTML = '';
+  const tierOrder = { Low: 0, High: 1, Ultra: 2, Superhigh: 2 };
+  const sectors = CENTERS[VIEW].sectors;
+  const extraLinks = (CENTERS[VIEW].links || []).filter(l => !l.sectorCode);
+
+  // One row per real sector polygon (most won't have confirmed audio
+  // yet), plus one row per real audio feed that doesn't have a matching
+  // polygon at all (e.g. ZME's generic "Memphis Center (Low)" feed, or
+  // sectors whose numbering didn't cross-match our geometry source).
+  const rows = [];
+  Object.entries(sectors).forEach(([code, info]) => {
+    rows.push({
+      code, center: info.center, tier: info.tier, freq: info.freq || null, mount_id: info.mount_id || null,
+      label: sectorLabel(VIEW, code), hasPolygon: true
+    });
+  });
+  extraLinks.forEach(link => {
+    rows.push({ code: null, center: link.center, tier: link.tier, freq: link.freq, mount_id: link.mount_id, label: link.title, hasPolygon: false });
+  });
+
+  // Grouped by center (same order as the dropdown), so picking a center
+  // there can scroll this list to that center's heading.
+  rows.sort((a, b) => {
+    const ca = REAL_CENTERS.indexOf(a.center), cb = REAL_CENTERS.indexOf(b.center);
+    if (ca !== cb) return ca - cb;
+    if (tierOrder[a.tier] !== tierOrder[b.tier]) return tierOrder[a.tier] - tierOrder[b.tier];
+    const fa = a.freq ? parseFloat(a.freq) : Infinity;
+    const fb = b.freq ? parseFloat(b.freq) : Infinity;
+    if (fa !== fb) return fa - fb;
+    return (a.code || '').localeCompare(b.code || '');
+  });
+
+  const withAudio = rows.filter(r => r.mount_id).length;
+
+  // Search box: every word typed must appear somewhere in the row's
+  // sector name, LiveATC's wording, frequency, or LiveATC feed name / mount
+  // (the feed name is what LiveATC's pop-up window shows).
+  const words = linksSearch.value.toLowerCase().split(/\s+/).filter(Boolean);
+  const allLinks = CENTERS[VIEW].links || [];
+  const shownRows = rows.filter(row => {
+    if (!words.length) return true;
+    const titles = allLinks.filter(l => row.code ? l.sectorCode === row.code : l.mount_id === row.mount_id).map(l => l.title);
+    const haystack = [row.label, row.code, row.freq, row.mount_id, FEED_NAMES[row.mount_id], ...titles].join(' ').toLowerCase();
+    return words.every(w => haystack.includes(w));
+  });
+
+  const header = document.createElement('div');
+  header.style.cssText = 'padding:8px 14px; color:#6b7383; font-size:11px; border-bottom:1px solid #1c2130;';
+  header.textContent = `${withAudio} of ${rows.length} sectors have live audio` +
+    (words.length ? ` - ${shownRows.length} matching "${linksSearch.value.trim()}"` : '');
+  linksList.appendChild(header);
+
+  shownRows.forEach((row, i) => {
+    if (i === 0 || row.center !== shownRows[i - 1].center) {
+      const h = document.createElement('div');
+      h.className = 'centerHeading';
+      h.dataset.center = row.center;
+      h.textContent = `${row.center} - ${CENTERS[row.center].displayName}`;
+      linksList.appendChild(h);
+    }
+    const a = document.createElement('a');
+    a.rel = 'noopener';
+    const isActive = row.code && row.code === activeSector;
+    a.className = 'linkEntry' + (isActive ? ' active' : '');
+    const tierTagClass = (row.tier === 'Superhigh') ? 'Ultra' : row.tier;
+    const speakerIcon = row.mount_id
+      ? '<span style="color:#63e6be;" title="Live audio available">&#128266;</span>'
+      : '<span style="color:#4a4f5c;" title="No known audio feed">&#128263;</span>';
+    const freqText = row.freq ? row.freq : '&mdash;';
+    if (row.mount_id) a.href = buildMountUrl(row.mount_id); // right-click "copy link" / hover preview
+
+    const feedLine = row.mount_id
+      ? `<div class="feedName">LiveATC: ${FEED_NAMES[row.mount_id] || row.mount_id}</div>` : '';
+    a.innerHTML = `<span class="tierTag ${tierTagClass}">${row.tier}</span>${row.label} <span class="freq">${freqText}</span> ${speakerIcon}${feedLine}`;
+
+    if (row.hasPolygon) {
+      a.addEventListener('mouseenter', () => {
+        if (tierGroup(row.tier) !== currentTier) {
+          const btn = document.querySelector(`#tierTabs button[data-tier="${tierGroup(row.tier)}"]`);
+          if (btn) btn.click();
+        }
+        highlightSectorOnMap(row.code, true);
+      });
+      a.addEventListener('mouseleave', () => highlightSectorOnMap(row.code, false));
+    }
+
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (row.mount_id) {
+        // Small, chrome-less popup window instead of a full new tab -
+        // matches how liveatc.net's own player pages are meant to be
+        // opened (hlisten.php is designed as a minimal player page).
+        openMountPopup(buildMountUrl(row.mount_id));
+      }
+
+      if (row.hasPolygon && row.mount_id) {
+        activeSector = row.code;
+        renderLinksList();
+        document.getElementById('listeningLine').textContent = `Listening to: ${row.label}${feedSummary(row.mount_id)}`;
+        document.getElementById('listeningLine').style.color = '#63e6be';
+        const btn = document.querySelector(`#tierTabs button[data-tier="${tierGroup(row.tier)}"]`);
+        if (btn) btn.click();
+      } else if (row.hasPolygon && !row.mount_id) {
+        // No audio for this one - just pan/zoom to it, don't pretend to "listen"
+        activeSector = null;
+        renderLinksList();
+        setMismatchBanner('', '');
+        document.getElementById('mismatchBanner').style.display = 'none';
+        document.getElementById('listeningLine').textContent = `Viewing: ${row.label} (no audio available)`;
+        document.getElementById('listeningLine').style.color = '#9aa4b8';
+        const btn = document.querySelector(`#tierTabs button[data-tier="${tierGroup(row.tier)}"]`);
+        if (btn) btn.click();
+        const entry = polygonLayers.find(l => l.code === row.code);
+        if (entry) map.fitBounds(entry.poly.getBounds());
+      } else {
+        // Real audio, but no known polygon boundary for it
+        activeSector = null;
+        renderLinksList();
+        document.getElementById('listeningLine').textContent = `Listening to: ${row.label} - no map boundary for this one yet, so mismatch-checking isn't available.${feedSummary(row.mount_id)}`;
+        document.getElementById('listeningLine').style.color = '#e8a33d';
+        setMismatchBanner('', '');
+        document.getElementById('mismatchBanner').style.display = 'none';
+      }
+    });
+    linksList.appendChild(a);
+  });
+}
+renderLinksList();
+
+// --- Plane icon ---
+function makePlaneIcon(trackDeg) {
+  const rotation = (typeof trackDeg === 'number') ? trackDeg : 0;
+  const html = `
+    <div class="plane-icon-wrap" style="transform: rotate(${rotation}deg); width: 32px; height: 32px;">
+      <svg viewBox="0 0 24 24" width="32" height="32">
+        <path d="M12 1 L19 22 L12 17.5 L5 22 Z" fill="#ffe600" stroke="#7a6b00" stroke-width="0.75"/>
+      </svg>
+    </div>`;
+  return L.divIcon({ className: '', html, iconSize: [32, 32], iconAnchor: [16, 16] });
+}
+
+let planeMarkers = []; // recency-ordered, used for the "last X flights" eviction
+let planeMarkersByCallsign = {}; // callsign -> marker, so relocating an already-tracked flight moves it instead of duplicating
+let etaTimer = null; // interval handle for the currently-open popup's live countdown
+
+function setStatus(msg, cls) {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = cls || '';
+}
+
+function setMismatchBanner(cls, text) {
+  const el = document.getElementById('mismatchBanner');
+  el.className = cls;
+  el.textContent = text;
+}
+
+async function locateFlight() {
+  const callsign = document.getElementById('flightInput').value.trim().toUpperCase();
+  if (!callsign) { setStatus('Type a flight number first.', 'err'); return; }
+
+  setStatus('Looking up ' + callsign + '...', '');
+
+  let found = null;
+  try {
+    const resp = await fetch(`api/lookup?callsign=${encodeURIComponent(callsign)}`);
+    if (!resp.ok) {
+      const text = await resp.text();
+      setStatus(`Lookup failed (HTTP ${resp.status}) - see console for details`, 'err');
+      console.error('Server response:', text);
+      return;
+    }
+    const data = await resp.json();
+    if (data && data.data && data.data.length > 0) {
+      found = data.data[0];
+    }
+  } catch (e) {
+    setStatus('Request failed - is the proxy server running? (see console)', 'err');
+    console.error(e);
+    return;
+  }
+
+  if (!found) {
+    setStatus('No live position found for ' + callsign, 'err');
+    return;
+  }
+
+  const lat = found.lat, lon = found.lon, alt = found.alt, track = found.track, gspeed = found.gspeed;
+  const resolvedCallsign = found.callsign || callsign;
+  const results = await askFrequencyService(lat, lon, alt || 0);
+  // The flight's own sector is the service's #1 answer only when it's "inside" -
+  // otherwise the flight is outside every known sector and #1 is just a neighbor
+  const matchedSector = results && results[0] && results[0].reason === 'inside' ? results[0].sector_code : null;
+
+  const resultsHtml = results === null
+    ? '<br><span style="color:#ff6b6b;">Frequency service unavailable</span>'
+    : results.length ? '<br>' + results.map(describeResult).join('<br>') : '';
+  const basePopupHtml = `<b>${resolvedCallsign}</b><br>${alt ? alt.toLocaleString() + ' ft' : ''}${resultsHtml}`;
+
+  // Relocating an already-tracked callsign moves its existing marker
+  // instead of creating a duplicate - and counts as "freshly touched"
+  // for the last-X-flights eviction, so it doesn't get bumped off just
+  // for being the oldest entry positionally.
+  let planeMarker = planeMarkersByCallsign[resolvedCallsign];
+  if (planeMarker) {
+    planeMarker.setLatLng([lat, lon]);
+    planeMarker.setIcon(makePlaneIcon(track));
+    const idx = planeMarkers.indexOf(planeMarker);
+    if (idx !== -1) planeMarkers.splice(idx, 1);
+    planeMarkers.push(planeMarker);
+  } else {
+    planeMarker = L.marker([lat, lon], { icon: makePlaneIcon(track) }).addTo(map);
+    planeMarkers.push(planeMarker);
+    planeMarkersByCallsign[resolvedCallsign] = planeMarker;
+  }
+  planeMarker.bindPopup(`${basePopupHtml}<br><span id="etaLine">Calculating ETA...</span>`).openPopup();
+
+  // --- Live ETA countdown to sector exit, no repeat API calls - just
+  // dead-reckoning forward from the position/track/speed we already have. ---
+  if (etaTimer) { clearInterval(etaTimer); etaTimer = null; }
+  if (matchedSector) {
+    const initialETA = computeETASeconds(lat, lon, track, gspeed, CENTERS[VIEW].sectors[matchedSector].polygon);
+    if (initialETA === null) {
+      planeMarker.setPopupContent(`${basePopupHtml}<br>ETA unavailable`);
+    } else {
+      const startTime = Date.now();
+      const tick = () => {
+        const elapsed = (Date.now() - startTime) / 1000;
+        const remaining = Math.max(0, initialETA - elapsed);
+        planeMarker.setPopupContent(`${basePopupHtml}<br>${formatETA(remaining)}`);
+        if (remaining <= 0) { clearInterval(etaTimer); etaTimer = null; }
+      };
+      tick(); // show immediately, don't wait a full second for the first update
+      etaTimer = setInterval(tick, 1000);
+    }
+  } else {
+    planeMarker.setPopupContent(`${basePopupHtml}<br>ETA unavailable (outside known coverage)`);
+  }
+
+  // Evict oldest markers past the "last X flights" limit (spinner input,
+  // default 10) - keeps the map from accumulating planes forever while
+  // still letting you see a short recent history.
+  const maxPlanes = Math.max(1, parseInt(document.getElementById('maxPlanesInput').value, 10) || 10);
+  while (planeMarkers.length > maxPlanes) {
+    const oldest = planeMarkers.shift();
+    map.removeLayer(oldest);
+    for (const cs in planeMarkersByCallsign) {
+      if (planeMarkersByCallsign[cs] === oldest) { delete planeMarkersByCallsign[cs]; break; }
+    }
+  }
+  map.setView([lat, lon], 8);
+
+  lastLookup = { callsign: resolvedCallsign, lat, lon, alt, predictedSector: matchedSector };
+  document.getElementById('predictedLine').textContent =
+    `${resolvedCallsign}: map predicts ${matchedSector ? sectorLabel(VIEW, matchedSector) : '(outside coverage)'}`;
+
+  // --- Requirement: flag whether the flight's real position falls
+  // outside the boundary of the sector tied to whichever LiveATC link is
+  // currently selected/active. ---
+  if (activeSector) {
+    if (!matchedSector) {
+      setMismatchBanner('none', `${resolvedCallsign} is OUTSIDE all known sector boundaries at this altitude - can't compare to ${sectorLabel(VIEW, activeSector)}.`);
+    } else if (matchedSector === activeSector) {
+      setMismatchBanner('match', `${resolvedCallsign} matches ${sectorLabel(VIEW, activeSector)} - consistent with the link you're listening to.`);
+    } else {
+      setMismatchBanner('mismatch', `MISMATCH: ${resolvedCallsign} is actually in ${sectorLabel(VIEW, matchedSector)}, not ${sectorLabel(VIEW, activeSector)} (the link you're listening to).`);
+    }
+  } else {
+    setMismatchBanner('', '');
+    document.getElementById('mismatchBanner').style.display = 'none';
+  }
+
+  logObservation(); // auto-log now that predicted + active sector are known
+
+  if (matchedSector) {
+    setStatus(`${resolvedCallsign} - ${sectorLabel(VIEW, matchedSector)}`, 'ok');
+  } else {
+    setStatus(`${resolvedCallsign} - outside all known sector coverage at this altitude`, '');
+  }
+}
+
+document.getElementById('goBtn').addEventListener('click', locateFlight);
+document.getElementById('flightInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') locateFlight();
+});
+
+// ---------------------------------------------------------------------
+// Observation log
+// ---------------------------------------------------------------------
+const LOG_KEY = 'zkc_sector_observation_log';
+let lastLookup = null;
+
+function loadLog() {
+  try { return JSON.parse(localStorage.getItem(LOG_KEY)) || []; }
+  catch (e) { return []; }
+}
+function saveLog(entries) { localStorage.setItem(LOG_KEY, JSON.stringify(entries)); }
+
+// Display name for a logged sector code, using LiveATC's own wording from
+// the right-hand column of its feed table (e.g. "New York Center (Sector 35
+// Huguenot Low)"). Log entries store only the code, so search every center.
+// Falls back to our own label when LiveATC has no entry for that sector.
+function liveatcName(code) {
+  if (!code || code.startsWith('(')) return code;
+  for (const [centerCode, info] of Object.entries(CENTERS)) {
+    const link = (info.links || []).find(l => l.sectorCode === code);
+    if (link) return link.title;
+    if (info.sectors[code]) return sectorLabel(centerCode, code);
+  }
+  return code;
+}
+
+function renderLog() {
+  const entries = loadLog();
+  const listEl = document.getElementById('logList');
+  listEl.innerHTML = '';
+  entries.slice().reverse().forEach(e => {
+    const div = document.createElement('div');
+    div.className = 'logEntry';
+    const isMatch = e.predicted === e.observed;
+    const matchClass = e.observed.startsWith('(') ? '' : (isMatch ? 'match' : 'mismatch');
+    const matchLabel = e.observed.startsWith('(') ? '' : (isMatch ? ' &#10003; match' : ' &#10007; mismatch');
+    div.innerHTML = `
+      <div class="flight">${e.callsign} <span class="time">${e.time}</span></div>
+      predicted: ${sectorRefHtml(e.predicted)} &rarr; heard: ${sectorRefHtml(e.observed)}
+      <span class="${matchClass}">${matchLabel}</span>
+      ${e.note ? '<br><i>' + e.note + '</i>' : ''}
+    `;
+    div.querySelectorAll('.sectorRef').forEach(attachSectorRefHover);
+    listEl.appendChild(div);
+  });
+}
+
+// A logged sector name that highlights its sector on the map on hover.
+function sectorRefHtml(code) {
+  const name = liveatcName(code) || '(none)';
+  if (!code || code.startsWith('(')) return name;
+  return `<span class="sectorRef" data-code="${code}">${name}</span>`;
+}
+
+function attachSectorRefHover(el) {
+  const code = el.dataset.code;
+  el.addEventListener('mouseenter', () => {
+    const info = CENTERS[VIEW].sectors[code];
+    if (!info) { el.title = 'Sector not found'; return; }
+    el.title = '';
+    // Only one altitude layer is drawn at a time - switch to this sector's
+    if (tierGroup(info.tier) !== currentTier) {
+      const btn = document.querySelector(`#tierTabs button[data-tier="${tierGroup(info.tier)}"]`);
+      if (btn) btn.click();
+    }
+    highlightSectorOnMap(code, true);
+  });
+  el.addEventListener('mouseleave', () => highlightSectorOnMap(code, false));
+}
+
+function logObservation() {
+  if (!lastLookup) return;
+  if (!activeSector) return; // nothing to compare against - skip silently
+
+  const entries = loadLog();
+  entries.push({
+    time: new Date().toISOString(),
+    callsign: lastLookup.callsign,
+    lat: lastLookup.lat, lon: lastLookup.lon, alt: lastLookup.alt,
+    predicted: lastLookup.predictedSector || '(none)',
+    observed: activeSector,
+    note: document.getElementById('noteInput').value.trim()
+  });
+  saveLog(entries);
+  renderLog();
+  document.getElementById('noteInput').value = '';
+}
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const entries = loadLog();
+  if (entries.length === 0) { setStatus('Nothing to export yet.', 'err'); return; }
+  const header = 'time,callsign,lat,lon,alt,predicted,observed,match,note';
+  const rows = entries.map(e => {
+    const match = e.observed.startsWith('(') ? '' : (e.predicted === e.observed ? 'yes' : 'no');
+    const esc = s => `"${String(s ?? '').replace(/"/g, '""')}"`;
+    return [e.time, e.callsign, e.lat, e.lon, e.alt, e.predicted, e.observed, match, e.note].map(esc).join(',');
+  });
+  const csv = [header, ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'zkc_sector_observations.csv';
+  a.click();
+});
+
+document.getElementById('clearBtn').addEventListener('click', () => {
+  if (loadLog().length === 0) { setStatus('Nothing to clear.', 'err'); return; }
+  if (!confirm('Clear all logged observations? This cannot be undone.')) return;
+  saveLog([]);
+  renderLog();
+  setStatus('Observations cleared.', 'ok');
+});
+
+renderLog();
+updateLayout(); // sync initial map/tab/banner positions to current panel widths
+</script>
+</body>
+</html>
+<!-- BUILD: 1 (conus.html) (2026-09-08) -->
