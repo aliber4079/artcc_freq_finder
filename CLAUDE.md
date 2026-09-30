@@ -297,6 +297,13 @@ CENTERS = {
   frequency service and a Swagger UI page for it (served at `/docs`;
   Swagger UI loads from the jsdelivr CDN). Keep the yaml in step with
   `lib/sectors.js` `formatResult` if result fields ever change (v2).
+- `try/index.html` - static test page: lat/lon/alt in, ranked sectors +
+  frequencies out, computed in the browser with `lib/sectors.js` on
+  `data/*.json` (loaded via `../`, not copies - so it never drifts from the
+  service). Produces the exact same JSON as `/api/v1/frequencies`
+  (verified). Meant for GitHub Pages (`.../artcc_freq_finder/try/`); also
+  served locally at `/try/`. This is also the "standalone JS" version to
+  show the LiveATC admin.
 - `data/centers.json` - every center's sectors, frequencies, feeds
 - `data/liveatc.json` - LiveATC player-link fixes and LiveATC's own feed names
 - `lib/sectors.js` - sector matching + frequency ranking, used by

@@ -37,7 +37,10 @@ const STATIC_FILES = {
   '/lib/sectors.js': ['lib/sectors.js', 'text/javascript'],
   // Swagger UI for the frequency service - try it at /docs
   '/docs': ['public/docs.html', 'text/html'],
-  '/openapi.yaml': ['public/openapi.yaml', 'text/yaml']
+  '/openapi.yaml': ['public/openapi.yaml', 'text/yaml'],
+  // Static test page (also works on GitHub Pages without this server)
+  '/try/': ['try/index.html', 'text/html'],
+  '/try/index.html': ['try/index.html', 'text/html']
 };
 
 // Sector data for the frequency service, loaded once at startup - restart

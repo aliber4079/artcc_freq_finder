@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ARTCC Frequency Finder</title>
+<!--
+  Static test page for the frequency service - no server needed.
+  Runs the same matching code as GET /api/v1/frequencies (lib/sectors.js)
+  on the same data (data/*.json), right in the browser, and shows the
+  same JSON the service would return. Works on GitHub Pages, or locally
+  at http://localhost:8080/try/ when server.js is running.
+-->
+<style>
+  :root {
+    --bg: #0a0e17; --panel: #12161f; --field: #1c2130; --border: #2a2f3a;
+    --text: #e8ecf4; --muted: #9aa4b8; --faint: #6b7383;
+    --accent: #3b5bdb; --ok: #63e6be; --warn: #e8a33d; --err: #ff6b6b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 15px;
+  }
+  main { max-width: 760px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 6px; }
+  p.lead { color: var(--muted); margin: 0 0 20px; line-height: 1.45; }
+  form {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 16px; display: grid; grid-template-columns: repeat(3, 1fr) auto; gap: 12px; align-items: end;
+  }
+  label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+  input {
+    background: var(--field); border: 1px solid #333a4a; color: var(--text);
+    padding: 9px 10px; border-radius: 6px; font-size: 15px; width: 100%;
+  }
+  button {
+    background: var(--accent); border: none; color: white; padding: 10px 18px;
+    border-radius: 6px; font-size: 15px; font-weight: 600; cursor: pointer;
+  }
+  button:hover { background: #364fc7; }
+  button:disabled { opacity: 0.5; cursor: default; }
+  .examples { margin: 12px 0 0; font-size: 13px; color: var(--faint); }
+  .examples a { color: var(--muted); margin-right: 12px; cursor: pointer; text-decoration: underline; }
+  #status { margin: 16px 0 8px; color: var(--muted); min-height: 1.2em; }
+  #status.err { color: var(--err); }
+  .result {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 14px; margin-bottom: 10px; display: grid; grid-template-columns: 28px 1fr auto; gap: 4px 12px;
+  }
+  .rank { font-size: 20px; font-weight: 700; color: var(--faint); grid-row: span 2; }
+  .sector { font-weight: 600; }
+  .freq { font-family: ui-monospace, monospace; font-size: 17px; text-align: right; }
+  .why { color: var(--muted); font-size: 13px; }
+  .listen { text-align: right; font-size: 13px; }
+  .listen a { color: var(--ok); }
+  .nofeed { color: var(--faint); }
+  .unknown { color: var(--warn); }
+  details { margin-top: 18px; }
+  summary { cursor: pointer; color: var(--muted); }
+  pre {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px; overflow-x: auto; font-size: 12px; color: #cdd4e0;
+  }
+  footer { margin-top: 28px; color: var(--faint); font-size: 12px; line-height: 1.5; }
+  @media (max-width: 600px) {
+    form { grid-template-columns: 1fr 1fr; }
+    form button { grid-column: span 2; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>ARTCC Frequency Finder</h1>
+  <p class="lead">Enter a position and altitude to see the 2&ndash;3 most likely
+    air traffic control center sectors, their frequencies, and a LiveATC.net
+    feed when one is known. Covers the 20 continental US centers.</p>
+
+  <form id="form">
+    <label>Latitude <input id="lat" inputmode="decimal" placeholder="35.08" required></label>
+    <label>Longitude <input id="lon" inputmode="decimal" placeholder="-106.65" required></label>
+    <label>Altitude (ft) <input id="alt" inputmode="numeric" placeholder="12000" required></label>
+    <button id="go" type="submit" disabled>Find</button>
+  </form>
+  <div class="examples">Examples:
+    <a data-ex="35.08,-106.65,12000">Albuquerque 12,000 ft</a>
+    <a data-ex="41.9,-88.0,24000">Chicago 24,000 ft</a>
+    <a data-ex="25.8,-80.3,10000">Miami 10,000 ft</a>
+    <a data-ex="40.8,-112.0,38000">Salt Lake 38,000 ft</a>
+  </div>
+
+  <div id="status">Loading sector data&hellip;</div>
+  <div id="results"></div>
+  <details id="jsonBox" hidden>
+    <summary>Same JSON the web service returns</summary>
+    <pre id="json"></pre>
+  </details>
+
+  <footer>
+    Runs entirely in your browser &mdash; no server. Sector shapes: vATCSCC/PERTI
+    (VATSIM data, not official FAA data). Frequencies and feeds: LiveATC.net,
+    cross-checked against vNAS/CRC. Altitude splits between layers are estimates
+    for most centers. Source:
+    <a href="https://github.com/aliber4079/artcc_freq_finder" style="color: var(--muted);">github.com/aliber4079/artcc_freq_finder</a>
+  </footer>
+</main>
+
+<script src="../lib/sectors.js"></script>
+<script>
+(async () => {
+  const $ = id => document.getElementById(id);
+  let index, liveatc;
+
+  try {
+    const [centers, la] = await Promise.all([
+      fetch('../data/centers.json').then(r => r.json()),
+      fetch('../data/liveatc.json').then(r => r.json())
+    ]);
+    index = SectorLib.buildIndex(centers);
+    liveatc = la;
+    $('status').textContent = `Ready - ${Object.keys(centers).length} centers, ${index.length} sectors loaded.`;
+    $('go').disabled = false;
+  } catch (e) {
+    $('status').textContent = 'Could not load the sector data. (Opening this file straight from disk won\'t work - it needs a web server or GitHub Pages.)';
+    $('status').className = 'err';
+    console.error(e);
+    return;
+  }
+
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const tierWord = t => (t === 'Superhigh' ? 'Superhigh' : t);
+
+  function describe(r) {
+    const why = r.reason === 'inside' ? 'The position is inside this sector'
+      : r.reason === 'near_border' ? `Neighboring sector, ${r.distance_nm} nm away`
+      : `Layer change ${Math.abs(r.alt_diff_ft).toLocaleString()} ft ${r.alt_diff_ft < 0 ? 'below' : 'above'}`;
+    const name = r.name ? ` ${esc(r.name)}` : '';
+    const freq = r.freq ? esc(r.freq) : '<span class="unknown">freq unknown</span>';
+    const listen = r.liveatc
+      ? `<a href="${esc(r.liveatc.url)}" target="_blank" rel="noopener">Listen on LiveATC</a>`
+      : '<span class="nofeed">no LiveATC feed</span>';
+    return `<div class="result">
+      <div class="rank">${r.rank}</div>
+      <div class="sector">${esc(r.center)} sector ${esc(r.sector)}${name} &middot; ${tierWord(r.tier)}</div>
+      <div class="freq">${freq}</div>
+      <div class="why">${why}${r.liveatc && r.liveatc.feed_name ? ' &middot; feed: ' + esc(r.liveatc.feed_name) : ''}</div>
+      <div class="listen">${listen}</div>
+    </div>`;
+  }
+
+  function run() {
+    const lat = Number($('lat').value), lon = Number($('lon').value), alt = Number($('alt').value);
+    // Same rules as the web service
+    const problems = [];
+    if ($('lat').value === '' || !(lat >= -90 && lat <= 90)) problems.push('latitude must be a number from -90 to 90');
+    if ($('lon').value === '' || !(lon >= -180 && lon <= 180)) problems.push('longitude must be a number from -180 to 180');
+    if ($('alt').value === '' || !(alt >= 0 && alt <= 100000)) problems.push('altitude must be a number of feet from 0 to 100000');
+    if (problems.length) {
+      $('status').textContent = 'Check the inputs: ' + problems.join('; ') + '.';
+      $('status').className = 'err';
+      $('results').innerHTML = '';
+      $('jsonBox').hidden = true;
+      return;
+    }
+    const results = SectorLib.rankFrequencies(index, liveatc, lat, lon, alt);
+    $('status').className = '';
+    $('status').textContent = results.length
+      ? `Most likely first, for ${lat}, ${lon} at ${alt.toLocaleString()} ft:`
+      : 'No known sector at this position and altitude (outside the 20 continental US centers, or a gap in the data).';
+    $('results').innerHTML = results.map(describe).join('');
+    $('json').textContent = JSON.stringify({ version: 1, query: { lat, lon, alt_ft: alt }, results }, null, 2);
+    $('jsonBox').hidden = false;
+  }
+
+  $('form').addEventListener('submit', e => { e.preventDefault(); run(); });
+  document.querySelectorAll('[data-ex]').forEach(a => a.addEventListener('click', () => {
+    const [lat, lon, alt] = a.dataset.ex.split(',');
+    $('lat').value = lat; $('lon').value = lon; $('alt').value = alt;
+    run();
+  }));
+})();
+</script>
+</body>
+</html>
